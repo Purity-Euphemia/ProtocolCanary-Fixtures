@@ -150,9 +150,11 @@ class ValidatorTests(unittest.TestCase):
         self.assertTrue(any("invalid TOML" in e for e in report.errors))
 
     def test_rejects_vague_category(self) -> None:
-        bad = VALID_XDR.replace('category = "cap-0083"', 'category = "misc"')
-        report = self.run_validation({"a.toml": bad})
-        self.assertTrue(any("too vague" in e for e in report.errors))
+        for vague in ("misc", "other", "test", "general"):
+            with self.subTest(category=vague):
+                bad = VALID_XDR.replace('category = "cap-0083"', f'category = "{vague}"')
+                report = self.run_validation({"a.toml": bad})
+                self.assertTrue(any("too vague" in e for e in report.errors))
 
     def test_rejects_uppercase_id(self) -> None:
         bad = VALID_XDR.replace(
