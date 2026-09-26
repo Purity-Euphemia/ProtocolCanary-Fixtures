@@ -23,17 +23,18 @@ To add one:
   deterministic input; an explicit expected result using the surface's typed
   assertion vocabulary.
 - **Check it** — run `make validate` (or `python3 tools/validate/validate.py` directly).
-- **Document & test it** — update the relevant `docs/protocol-NN.md` table
-  (and the pack's `README.md` for a new CAP or surface), then run
-  `make test` (or `python3 -m unittest discover tests` directly).
+- **Document, test & refresh it** — update the relevant `docs/protocol-NN.md`
+  table (and the pack's `README.md` for a new CAP or surface), run
+  `make test` (or `python3 -m unittest discover tests` directly), then run
+  `make badge` so README.md's fixture-count badge reflects the new fixture.
 
 1. **Identify the upstream behavior.** Read the CAP text, the upstream XDR
    definition, the upstream implementation, or the official release/API
    docs — in that order of preference. Never cite a source you have not
    actually checked describes the specific behavior you are asserting.
 2. **Add source provenance.** Every fixture sets `source_reference` to an
-   authoritative URL or CAP identifier (note: omitting it currently produces
-   a warning, not a validator error), and its header comment (a `#`
+   authoritative URL or CAP identifier — omitting it is a hard validator
+   error, not a warning — and its header comment (a `#`
    comment block above the TOML body) explains, in prose, how the expected
    value was derived or observed — e.g. "built with the official
    `stellar-xdr` 28.0.0 crate against the CAP-0083 `StellarValue` type",
@@ -49,18 +50,33 @@ To add one:
 4. **Create deterministic input.** No fixture may depend on ledger state
    that changes between runs (a current ledger sequence, "the latest
    anything") unless the assertion is explicitly scoped as a live-network
-   check and documented as such.
+   check and documented as such. For an XDR `decode-failure` fixture, follow
+   the [malformed-input guidance in `SECURITY.md`](SECURITY.md#parser-safety-in-mind):
+   prefer a specific documented rejection, such as truncation or an invalid
+   discriminant, over arbitrary fuzzing input, and explain the malformation in
+   the fixture's header comment.
 5. **Define an explicit expected result** using the assertion vocabulary
    the target surface actually supports (see "Fixture schema" below) — no
    generic string matching when a typed assertion exists.
 6. **Validate the fixture**: `make validate` — or
-   `python3 tools/validate/validate.py` directly.
+   `python3 tools/validate/validate.py` directly. Only errors produce a
+   non-zero exit code: the validator exits 1 if the report contains at
+   least one error and 0 otherwise. CI runs this exact command
+   (`.github/workflows/validate.yml`), so that exit code is what CI
+   treats as pass/fail — any error fails the workflow on your PR. In
+   particular, a missing `source_reference` (step 2) is an error, so it
+   fails CI rather than passing with a printed advisory.
 7. **Add/update documentation**: the relevant `docs/protocol-NN.md` table
    and, if you added a new CAP or surface, the pack's `README.md`.
 8. **Run the repository tests**: `make test` — or
    `python3 -m unittest discover tests` directly.
+9. **Refresh the fixture-count badge** in `README.md`: `make badge` — or
+   `python3 tools/badge/badge.py` directly. CI runs
+   `python3 tools/badge/badge.py --check` and fails if the committed badge
+   no longer matches the fixture tree (see
+   [README.md](README.md#fixtures-badge)).
 
-Before pushing, `make check` runs both of the above in one command, in
+Before pushing, `make check` runs all of the above in one command, in
 the same order CI (`.github/workflows/validate.yml`) runs them.
 
 > **Note**: Do not add a `manifest.toml` or similar discovery/enumeration file. The loader recursively treats every `*.toml` file under `--fixtures-dir` as a fixture, so a manifest `.toml` file would be mis-parsed as a malformed fixture and fail the run (see [README.md](README.md#repository-relationship)).
@@ -111,7 +127,7 @@ protocol = 28
 surface = "xdr" # | "rpc" | "soroban"
 category = "cap-0083"
 description = "..."
-source_reference = "CAP-0083"          # optional but expected for protocol-specific fixtures
+source_reference = "CAP-0083"          # required for protocol-specific fixtures; missing it is an error
 required_capabilities = []              # optional, see fixture-contract.md
 input_file = "..."                      # optional, path relative to this file (currently unused by any fixture)
 expected_file = "..."                   # optional (currently unused by any fixture)
@@ -174,16 +190,48 @@ Do not silently delete a fixture that is still referenced by a released
 its header comment with the reason, note it in `CHANGELOG.md`, and remove
 it in a later, separate change once nothing depends on it.
 
+Note that deprecation is communicated **only** via this header comment
+convention. There is intentionally no `deprecated` field or equivalent
+structured marker in the schema. This is by design: deprecation is meant
+for humans reading the fixture or reviewing a PR, while automated consumers
+parsing the file via the schema treat it like any other fixture until it is
+fully removed.
+## Updating CHANGELOG.md
+
+Every user-visible change — a new fixture, a validator behavior change, new
+tooling — gets an entry under `CHANGELOG.md`'s `## [Unreleased]` section in
+the same pull request that makes the change.
+
+Each entry must include a link to the pull request that introduced it, so a
+reader can jump straight from the changelog line to the review discussion
+and the diff:
+
+```markdown
+- `p28-xdr-example` — what the fixture checks.
+  ([PR #123](https://github.com/StellarCanary/ProtocolCanary-Fixtures/pull/123))
+```
+
+If a change is pushed directly to `main` without a pull request, link the
+introducing commit instead:
+
+```markdown
+- Something else. ([abc1234](https://github.com/StellarCanary/ProtocolCanary-Fixtures/commit/abc1234))
+```
+
+A changelog entry without one of these links is not ready for review.
+
 ## Development setup
 
 No build system is required. `tools/validate/validate.py` uses only the
 Python 3.11+ standard library (`tomllib`), so there is nothing to install.
 
-For convenience, a `Makefile` wraps the two commands CI runs:
+For convenience, a `Makefile` wraps the commands CI runs:
 
 - `make validate` — structural fixture validation.
+- `make badge` — regenerates README.md's fixture-count badge.
+- `make badge-check` — fails if that badge is stale.
 - `make test` — the repository test suite.
-- `make check` — both, in CI's order, stopping at the first failure.
+- `make check` — all of them, in CI's order, stopping at the first failure.
 
 The underlying commands work identically if run directly, so `make` is
 not a requirement for contributing — it only saves typing.
