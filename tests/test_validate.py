@@ -2286,6 +2286,7 @@ class PortableFixtureNameTests(unittest.TestCase):
             "xdr/a>b.toml",
             'xdr/a"b.toml',
             "xdr/a|b.toml",
+            "xdr/payload?.bin",
         ):
             with self.subTest(name=name):
                 report = self.run_validation(name)
