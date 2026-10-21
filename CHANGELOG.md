@@ -290,8 +290,7 @@ discussion and diff. New entries must include that link; see
   registry-generation and archive-verification time instead of failing later
   on a Windows checkout. Closes
   [issue #323](https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/323).
-  <!-- TODO: switch to the PR link once this PR is opened. -->
-  ([#323])
+  ([PR #380])
 - Fixture-text scanning in `tools/validate/validate.py`: fixture TOML files,
   and verification evidence JSON files read through `--evidence`, now reject
   bidirectional override and isolate characters, zero-width and other `Cf`
@@ -301,8 +300,7 @@ discussion and diff. New entries must include that link; see
   `U+XXXX` form; the validator reports and never rewrites the file. Tab, LF,
   CR, accented letters and CJK text remain valid. Closes
   [issue #322](https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/322).
-  <!-- TODO: switch to the PR link once this PR is opened. -->
-  ([#322])
+  ([PR #380])
 
 
 ### Changed
@@ -512,5 +510,4 @@ discussion and diff. New entries must include that link; see
 [#358]: https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/358
 [#357]: https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/357
 [#354]: https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/354
-[#323]: https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/323
-[#322]: https://github.com/StellarCanary/ProtocolCanary-Fixtures/issues/322
+[PR #380]: https://github.com/StellarCanary/ProtocolCanary-Fixtures/pull/380
